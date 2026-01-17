@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DD1 Bank - Simulador Completo</title>
+    <style>
+        /* --- ESTILOS GERAIS --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f0f2f5; display: flex; justify-content: center; min-height: 100vh; }
+        
+        .mobile-container {
+            width: 100%; max-width: 400px; background-color: #fff;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1); position: relative; padding-bottom: 70px;
+            overflow: hidden; min-height: 100vh;
+        }
+
+        :root {
+            --primary-orange: #FF6B00;
+            --light-orange: #FFF0E5;
+            --dark-text: #2c3e50;
+            --gray-text: #7f8c8d;
+            --green-success: #27ae60;
+        }
+
+        /* Header */
+        header { background-color: var(--primary-orange); color: white; padding: 30px 20px 20px; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; transition: 0.3s; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .logo { font-size: 24px; font-weight: bold; letter-spacing: 1px; }
+        .user-icon { background: rgba(255,255,255,0.2); padding: 8px; border-radius: 50%; width: 40px; height: 40px; text-align: center; line-height: 24px; cursor: pointer; }
+        .welcome { font-size: 14px; opacity: 0.9; }
+        .user-name { font-size: 20px; font-weight: 600; }
+
+        /* Card Saldo */
+        .balance-card { background: white; margin: -30px 20px 20px; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; z-index: 5; }
+        .balance-label { font-size: 12px; color: var(--gray-text); display: flex; justify-content: space-between; }
+        .balance-value { font-size: 28px; font-weight: bold; color: var(--dark-text); margin: 10px 0; transition: color 0.3s; }
+
+        /* Atalhos */
+        .shortcuts { display: flex; justify-content: space-between; padding: 0 20px; margin-bottom: 30px; }
+        .shortcut-item { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; }
+        .icon-circle { width: 55px; height: 55px; background-color: var(--light-orange); border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--primary-orange); transition: transform 0.2s; }
+        .icon-circle:hover { transform: scale(1.05); background-color: #ffecd6; }
+        .shortcut-label { font-size: 12px; font-weight: 600; color: var(--dark-text); }
+
+        /* Transações */
+        .transactions { padding: 0 20px; padding-bottom: 20px; }
+        .section-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: var(--dark-text); }
+        .transaction-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #f5f5f5; animation: slideDown 0.5s ease; }
+        .t-icon { width: 40px; height: 40px; background: #f0f2f5; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 15px; }
+        .t-details { flex: 1; }
+        .t-name { font-size: 14px; font-weight: 600; color: var(--dark-text); }
+        .t-date { font-size: 11px; color: var(--gray-text); }
+        .t-value { font-size: 14px; font-weight: bold; }
+        .debit { color: var(--dark-text); }
+        .credit { color: var(--green-success); }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Menu Inferior */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 400px; background: white; border-top: 1px solid #eee; display: flex; justify-content: space-around; padding: 15px 0; z-index: 50; }
+        .nav-item { text-align: center; color: var(--gray-text); cursor: pointer; }
+        .nav-item.active { color: var(--primary-orange); }
+        .nav-icon { font-size: 20px; margin-bottom: 4px; }
+        .nav-text { font-size: 10px; font-weight: 600; }
+
+        /* --- MODAIS (Pix e Config) --- */
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 100;
+            display: none; justify-content: center; align-items: flex-end;
+        }
+        .modal-overlay.active { display: flex; }
+        
+        .pix-modal {
+            width: 100%; background: white; padding: 25px 20px;
+            border-top-left-radius: 25px; border-top-right-radius: 25px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+            animation: slideUp 0.3s ease;
+            max-height: 85vh; overflow-y: auto;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 20px; color: var(--primary-orange); display: flex; justify-content: space-between; }
+        
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 12px; color: var(--gray-text); margin-bottom: 5px; font-weight: bold; }
+        .input-field { 
+            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; 
+            font-size: 16px; outline: none; transition: border 0.3s;
+        }
+        .input-field:focus { border-color: var(--primary-orange); }
+
+        .btn-action {
+            width: 100%; padding: 15px; border: none; border-radius: 12px;
+            font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;
+        }
+        .btn-confirm { background-color: var(--primary-orange); color: white; }
+        .btn-confirm:active { background-color: #e65e00; }
+        .btn-cancel { background-color: transparent; color: var(--gray-text); margin-top: 5px; }
+        .btn-blue { background-color: #2c3e50; color: white; } /* Botão estilo dev */
+
+        /* Loader */
+        .loader {
+            border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-orange);
+            border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite;
+            margin: 0 auto 10px; display: none;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- NOTIFICAÇÃO PUSH --- */
+        .push-notification {
+            position: absolute; top: -100px; left: 20px; right: 20px;
+            background: #333; color: white; padding: 15px; border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 200;
+            display: flex; align-items: center; gap: 10px;
+            transition: top 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .push-icon { color: var(--primary-orange); font-size: 20px; }
+        .push-content h4 { font-size: 13px; margin-bottom: 2px; }
+        .push-content p { font-size: 11px; opacity: 0.8; }
+
+        .divider { height: 1px; background: #eee; margin: 20px 0; }
+
+    </style>
+</head>
+<body>
+
+    <div class="mobile-container">
+        <div class="push-notification" id="notificacao-push">
+            <div class="push-icon">❖</div>
+            <div class="push-content">
+                <h4>Pix Recebido</h4>
+                <p id="msg-notificacao">Você recebeu uma transferência.</p>
+            </div>
+        </div>
+
+        <header>
+            <div class="top-bar">
+                <div class="logo">DD1</div>
+                <div class="user-icon">👤</div>
+            </div>
+            <div class="welcome">Bom dia,</div>
+            <div class="user-name">João Silva</div>
+            <br>
+        </header>
+
+        <div class="balance-card">
+            <div class="balance-label">
+                <span>Saldo em conta</span>
+                <span class="eye-icon">👁️</span>
+            </div>
+            <div class="balance-value" id="display-saldo">R$ 1.450,30</div>
+        </div>
+
+        <div class="shortcuts">
+            <div class="shortcut-item" onclick="abrirModal('modal-pix')">
+                <div class="icon-circle">❖</div>
+                <span class="shortcut-label">Pix</span>
+            </div>
+            <div class="shortcut-item">
+                <div class="icon-circle">📄</div>
+                <span class="shortcut-label">Pagar</span>
+            </div>
+            <div class="shortcut-item">
+                <div class="icon-circle">💸</div>
+                <span class="shortcut-label">Transf.</span>
+            </div>
+            <div class="shortcut-item">
+                <div class="icon-circle">💳</div>
+                <span class="shortcut-label">Cartões</span>
+            </div>
+        </div>
+
+        <div class="transactions">
+            <div class="section-title">Últimas movimentações</div>
+            <div id="lista-transacoes">
+                <div class="transaction-item">
+                    <div style="display:flex; align-items:center;">
+                        <div class="t-icon">🛒</div>
+                        <div class="t-details">
+                            <div class="t-name">Supermercado Dia</div>
+                            <div class="t-date">Hoje, 10:30</div>
+                        </div>
+                    </div>
+                    <div class="t-value debit">- R$ 125,50</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-nav">
+            <div class="nav-item active">
+                <div class="nav-icon">🏠</div>
+                <div class="nav-text">Início</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">📝</div>
+                <div class="nav-text">Extrato</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">🛍️</div>
+                <div class="nav-text">Loja</div>
+            </div>
+            <div class="nav-item" onclick="abrirModal('modal-config')">
+                <div class="nav-icon">⚙️</div>
+                <div class="nav-text">Config</div>
+            </div>
+        </div>
+
+        <div class="modal-overlay" id="modal-pix">
+            <div class="pix-modal">
+                <div class="modal-title">Área Pix</div>
+                <div id="loader-pix" class="loader"></div>
+                <div id="form-pix">
+                    <div class="input-group">
+                        <label>Chave Pix</label>
+                        <input type="text" id="chave-pix" class="input-field" placeholder="CPF, Email...">
+                    </div>
+                    <div class="input-group">
+                        <label>Valor (R$)</label>
+                        <input type="number" id="valor-pix" class="input-field" placeholder="0,00">
+                    </div>
+                    <button class="btn-action btn-confirm" onclick="realizarPix()">Transferir Agora</button>
+                    <button class="btn-action btn-cancel" onclick="fecharModal('modal-pix')">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-overlay" id="modal-config">
+            <div class="pix-modal" style="background: #f9f9f9;">
+                <div class="modal-title">
+                    <span>Configurações (Simulador)</span>
+                    <span onclick="fecharModal('modal-config')" style="cursor:pointer">✕</span>
+                </div>
+
+                <div class="input-group">
+                    <label>Mudar Saldo Atual (R$)</label>
+                    <input type="number" id="novo-saldo" class="input-field" placeholder="Digite o novo saldo">
+                </div>
+                <button class="btn-action btn-blue" onclick="atualizarSaldoManual()" style="margin-bottom: 20px;">Atualizar Saldo</button>
+
+                <div class="divider"></div>
+
+                <div class="modal-title" style="font-size: 16px;">Agendar Pix Recebido</div>
+                
+                <div class="input-group">
+                    <label>Nome do Pagador</label>
+                    <input type="text" id="recebe-nome" class="input-field" placeholder="Ex: Maria Oliveira">
+                </div>
+                <div class="input-group">
+                    <label>Valor a Receber (R$)</label>
+                    <input type="number" id="recebe-valor" class="input-field" placeholder="Ex: 1000,00">
+                </div>
+                <div class="input-group">
+                    <label>Tempo para cair (segundos)</label>
+                    <input type="number" id="recebe-tempo" class="input-field" value="15">
+                </div>
+
+                <button class="btn-action btn-confirm" onclick="agendarRecebimento()">Agendar Recebimento</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let saldoAtual = 1450.30;
+
+        function formatarMoeda(valor) {
+            return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        // Funções Genéricas de Modal
+        function abrirModal(id) {
+            document.getElementById(id).classList.add('active');
+            if(id === 'modal-config') {
+                document.getElementById('novo-saldo').value = saldoAtual.toFixed(2);
+            }
+        }
+
+        function fecharModal(id) {
+            document.getElementById(id).classList.remove('active');
+            // Reseta loadings se houver
+            if(document.getElementById('loader-pix')) document.getElementById('loader-pix').style.display = 'none';
+            if(document.getElementById('form-pix')) document.getElementById('form-pix').style.display = 'block';
+        }
+
+        // === 1. LÓGICA DE ENVIAR PIX (GASTAR DINHEIRO) ===
+        function realizarPix() {
+            const campoChave = document.getElementById('chave-pix').value;
+            const campoValor = document.getElementById('valor-pix').value;
+            const valorNumerico = parseFloat(campoValor);
+
+            if (!campoChave || !valorNumerico || valorNumerico <= 0) { alert("Preencha corretamente."); return; }
+            if (valorNumerico > saldoAtual) { alert("Saldo insuficiente!"); return; }
+
+            document.getElementById('form-pix').style.display = 'none';
+            document.getElementById('loader-pix').style.display = 'block';
+
+            setTimeout(() => {
+                saldoAtual -= valorNumerico;
+                atualizarDisplaySaldo();
+                adicionarExtrato("Pix Enviado", `Para: ${campoChave}`, valorNumerico, "debit");
+                fecharModal('modal-pix');
+                alert("Pix enviado com sucesso!");
+            }, 2000);
+        }
+
+        // === 2. LÓGICA DE CONFIGURAÇÃO (EDITAR SALDO) ===
+        function atualizarSaldoManual() {
+            const novoValor = parseFloat(document.getElementById('novo-saldo').value);
+            if(isNaN(novoValor)) { alert("Digite um número válido"); return; }
+            
+            saldoAtual = novoValor;
+            atualizarDisplaySaldo();
+            alert("Saldo atualizado manualmente!");
+            fecharModal('modal-config');
+        }
+
+        // === 3. LÓGICA DE AGENDAR RECEBIMENTO (GANHAR DINHEIRO) ===
+        function agendarRecebimento() {
+            const nome = document.getElementById('recebe-nome').value || "Desconhecido";
+            const valor = parseFloat(document.getElementById('recebe-valor').value);
+            const segundos = parseInt(document.getElementById('recebe-tempo').value);
+
+            if(!valor || valor <= 0) { alert("Digite um valor para receber."); return; }
+            if(!segundos || segundos < 0) { alert("Defina o tempo."); return; }
+
+            fecharModal('modal-config');
+            alert(`Simulação iniciada! O Pix de ${formatarMoeda(valor)} cairá em ${segundos} segundos.`);
+
+            // O Timer Mágico
+            setTimeout(() => {
+                // Atualiza dinheiro
+                saldoAtual += valor;
+                atualizarDisplaySaldo();
+
+                // Adiciona no Extrato (Verde)
+                adicionarExtrato("Pix Recebido", `De: ${nome}`, valor, "credit");
+
+                // Mostra notificação no topo
+                mostrarNotificacao(`Você recebeu um Pix de ${nome}`, valor);
+
+            }, segundos * 1000);
+        }
+
+        // === FUNÇÕES AUXILIARES ===
+        function atualizarDisplaySaldo() {
+            document.getElementById('display-saldo').innerText = formatarMoeda(saldoAtual);
+        }
+
+        function adicionarExtrato(titulo, subtitulo, valor, tipo) {
+            const lista = document.getElementById('lista-transacoes');
+            const horaAtual = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            
+            const div = document.createElement('div');
+            div.className = 'transaction-item';
+            
+            // Define o sinal (+ ou -) e a cor
+            const sinal = tipo === 'credit' ? '+' : '-';
+            
+            div.innerHTML = `
+                <div style="display:flex; align-items:center;">
+                    <div class="t-icon" style="${tipo === 'credit' ? 'color:green' : ''}">${tipo === 'credit' ? '💰' : '💸'}</div>
+                    <div class="t-details">
+                        <div class="t-name">${titulo}</div>
+                        <div class="t-date">${subtitulo} • ${horaAtual}</div>
+                    </div>
+                </div>
+                <div class="t-value ${tipo}">${sinal} ${formatarMoeda(valor)}</div>
+            `;
+            lista.prepend(div);
+        }
+
+        function mostrarNotificacao(texto, valor) {
+            const notif = document.getElementById('notificacao-push');
+            document.getElementById('msg-notificacao').innerText = `${texto} - ${formatarMoeda(valor)}`;
+            
+            // Animação de descer
+            notif.style.top = "10px";
+            
+            // Toca um som de notificação (opcional, navegadores bloqueiam as vezes)
+            try {
+                let audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+                audio.volume = 0.2;
+                audio.play();
+            } catch(e) {}
+
+            // Sobe de volta depois de 4 segundos
+            setTimeout(() => {
+                notif.style.top = "-100px";
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
